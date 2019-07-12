@@ -1,0 +1,340 @@
+// ==UserScript==
+// @name       SalesForce Helper
+// @description add floating summary menu to MB salesforce
+// @match      https://emea.salesforce.com/*
+// @match      http://emea.salesforce.com/*
+// @match      https://eu7.salesforce.com/*
+// @match      http://eu7.salesforce.com/*
+// @require    http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.js
+// @version    20190506_lite
+// @grant       GM_addStyle
+// @grant       GM_openInTab
+// @grant       GM_xmlhttpRequest
+// ==/UserScript==
+//console.log(sampleOut);
+var liteVersion = "Y";
+//get info from page
+var vtier = document.getElementById('00N0J000009y1qz_ileinner').innerHTML;
+var vusername = document.getElementById('00N20000005k1YO_ileinner').innerHTML;
+var vname = document.getElementById('acc2_ileinner').innerHTML;
+var vuserid = document.getElementById('00N200000099xpA_ileinner').innerHTML;
+var vturnoverMetric = document.getElementById('00N20000009AdpT_ileinner').innerHTML;
+vturnoverMetric = vturnoverMetric.replace(/\,/g,'');
+var vmetricSinceJuly = document.getElementById('00N20000009B1Dl_ilecell').innerHTML;
+vmetricSinceJuly = vmetricSinceJuly.replace(/\,/g,'');
+var vemail = document.getElementById('PersonEmail_ileinner').innerHTML;
+var vnBets = document.getElementById('00N20000009A6J4_ilecell').innerHTML;
+var toMet= parseFloat(vturnoverMetric);
+var sjMet = parseFloat(vmetricSinceJuly);
+var paymentRatingUsed = Math.max(toMet,sjMet);
+var wdMsg = "*** 2% *** (Rating " + paymentRatingUsed + ")";
+var fundingUrl = "http://metabase.ovh.xcl.ie:3000/question/698?un=" + vusername;
+var limitsUrl = "http://metabase.ovh.xcl.ie:3000/question/672?UN=" + vusername;
+var limitChangesUrl = "http://mbreports1.cixp.xcl.ie/report/html/?report=mysql%2Fpayment-limit-changes-by-user.sql&macros%5Busername%5D=" + vusername;
+var lockoutUrl = "http://metabase.ovh.xcl.ie:3000/question/671?un=" + vusername;
+var creditUrl = "http://metabase.ovh.xcl.ie:3000/question/1012?un=" + vusername;
+var verificationNote = "Check Admin";
+var spoofUrl = "https://classic-admin.matchbook.com/navigation/AdminSelectUser.jsp?userId=" + vuserid + "&new=true";
+var adminNotes = document.getElementById('00N200000099xpt_ileinner').innerHTML;
+adminNotes = adminNotes.toLowerCase();
+var offerText = "No Data";
+//00N20000009AnGR_ileinner
+var comms2NoFee = document.getElementById('00N20000009B4eX_ileinner').innerHTML;
+comms2NoFee = comms2NoFee.replace(/\,/g,'');
+var teamName = document.getElementById('00N200000099R2z_ileinner').innerHTML;
+var exchangeBets = document.getElementById('00N20000009A6J4_ileinner').innerHTML;
+var casinoBets = document.getElementById('00N200000099Nu4_ileinner').innerHTML;
+var vacNum = document.getElementById( '00N0J00000AQSzr_ileinner' ).innerHTML;
+var NetDepURL = "http://metabase.ovh.xcl.ie:3000/question/2787?UN=" + vusername;
+var vsec = document.getElementById('00N0J000009jGko_ilecell').innerHTML;
+var noteURL = "http://metabase.ovh.xcl.ie:3000/question/2844?user_name=" + vusername;
+var profitURL = "http://metabase.ovh.xcl.ie:3000/question/2777?account_id=" + vacNum;
+var commsURL = "http://prodsupport-tools.ovh.xcl.ie/cgi-bin/commission-cs/01.py?user_id_input=" + vacNum;
+var VuserID = document.getElementById('00N200000099xpA_ileinner').innerHTML;
+var secAns = document.getElementById('00N0J00000ADzuc_ileinner').innerHTML;
+var RiskLevel = document.getElementById('00N0J00000AXeW1_ileinner').innerHTML;
+var RiskLevelNote = "Medium Risk";
+/////////////////////////////////////////
+if (RiskLevel <= 0.28) {
+    RiskLevelNote = "Low Risk";
+}
+
+if (RiskLevel >=0.4) {
+    RiskLevelNote = "High Risk";
+}
+
+if (adminNotes.search("as008") >= 0){
+ verificationNote = "AS008";
+ }
+if (adminNotes.search("as029") >=0) {
+    verificationNote = "AS029";
+ }
+if ( (toMet >= 1.1) || (sjMet >= 1.1) ) { // if either metric exceeds 1.1 ...
+       wdMsg = "NO FEE (Rating " + paymentRatingUsed + ")";
+       }
+var zNode = document.createElement ('div');
+if (liteVersion == "Y"){
+       zNode.innerHTML = '<Strong>VIP/Retail: </Strong>' + vtier + '<br><br>'
+               + '<Strong>Team: </Strong>' + teamName +'<br><br>'
+               + '<Strong>Name: </Strong>' + vname +'<br><br>'
+               + '<Strong>Username: </Strong>' + vusername +'<br><br>'
+               + '<Strong>Account ID: </Strong>(Eddie)' + vacNum + '<br><br>'
+               + '<Strong>User ID: </Strong>(IPG/Limits)' + VuserID + '<br><br>'
+               + '<Strong>Email: </Strong>' + vemail + '<br><br>'
+               + '<Strong>Withdrawals: </Strong>' + wdMsg + '<br><br>'
+               + '<Strong>Comms until Free: </Strong>' + comms2NoFee + '<br><br>'
+               + '<Strong>#Bets: </Strong> Exchange - ' + exchangeBets + ' Casino - '+ casinoBets + '<br><br>'
+               + '<Strong>Verification status: </Strong> ' + verificationNote + '<br><br>'
+               + '<strong>Security Answer:</strong>' + secAns + '<br><br>'
+               + '<strong>PG Risk Level: </strong>' + RiskLevelNote + '<br><br>'
+               + '<button id="limitsButton" type="button">Limits</button>'
+               + '<button id="creditButton" type="button">Credit Check</button>'
+               + '<button id="lockoutButton" type="button">Lockout Check</button>'
+               + '<button id="fundingButton" type="button">Transaction History</button>'
+               + '<button id="netDepButton" type="button">Net Deposits</button>'
+               + '<button id="spoofButton" type="button">Login as user</button>'
+               + '<button id="commsButton" type="button">Commission Check (CLICK ONCE!)</button>'
+               + '<button id="noteButton" type="button">View account notes</button>'
+               + '<button id="profitButton" type="button">View P&L up to 7am</button>'
+               + '<button id="emailButton" type="button">Send Email</button>'
+               + '<button id="caseButton" type="button">New Case</button>'
+               + '<br>'
+               + '<br>So I can look into your account, can you please confirm:<br>Address<br>Date of Birth<br>'+vsec
+               ;
+     zNode.setAttribute ('id', 'sContainer');
+   }
+else{
+   getSecInfo();
+   zNode.innerHTML = '<Strong>Tier: </Strong>' + vtier + '<br><br>'
+               + '<Strong>Team: </Strong>' + teamName +'<br><br>'
+               + '<Strong>Name: </Strong>' + vname +'<br><br>'
+               + '<Strong>userName: </Strong>' + vusername +'<br><br>'
+               + '<Strong>Email: </Strong>' + vemail + '<br><br>'
+               + '<Strong>KYC Status: </Strong>' + verificationNote + '<br><br>'
+               + '<Strong>Withdrawals: </Strong>' + wdMsg + '<br><br>'
+               + '<Strong>Comms until Free: </Strong>' + comms2NoFee + '<br><br>'
+               + '<Strong>#Bets: </Strong> Exchange - ' + exchangeBets + ' Casino - '+ casinoBets + '<br><br>'
+               + '<button id="myButton" type="button">Report Suspicious Activity</button><br>'
+               + '<button id="caseButton" type="button">'
+               + 'CASES</button>'
+               + '<br><button id="mbPtsButton" type="button">'
+               + 'Check MB Points</button><br>'
+               + '<button id="spoofButton" type="button">'
+               + 'Login as User</button><br>'
+               + '<BR><BR>'
+               + '<button id="creditButton" type="button">Credit Check</button>'
+               + '<button id="limitsButton" type="button">'
+               + 'Limits</button>'
+               + '<button id="limitChangesButton" type="button">'
+               + 'Limit History</button>'
+               ;
+  zNode.setAttribute ('id', 'sContainer');
+  }
+document.body.appendChild (zNode);
+// get various bits from php reports
+////////////////////////////////////////////////////////////////////
+document.getElementById ("limitsButton").addEventListener (
+   "click", limitsButtonClickAction, false
+);
+function limitsButtonClickAction (zEvent) {
+   GM_openInTab(limitsUrl);
+}
+////////////////////////////////////////////////////////////////////
+document.getElementById ("creditButton").addEventListener (
+   "click", creditButtonClickAction, false
+);
+function creditButtonClickAction (zEvent) {
+  GM_openInTab(creditUrl);
+}
+////////////////////////////////////////////////////////////////////
+document.getElementById ("lockoutButton").addEventListener (
+   "click", lockoutButtonClickAction, false
+);
+function lockoutButtonClickAction (zEvent) {
+   GM_openInTab(lockoutUrl);
+}
+////////////////////////////////////////////////////////////////////
+document.getElementById ("fundingButton").addEventListener (
+   "click", fundingButtonClickAction, false
+);
+function fundingButtonClickAction (zEvent) {
+   GM_openInTab(fundingUrl);
+}
+////////////////////////////////////////////////////////////////////
+document.getElementById ("netDepButton").addEventListener (
+    "click", netDepButtonClickAction, false
+ );
+function netDepButtonClickAction (zEvent) {
+    GM_openInTab(NetDepURL);
+}
+////////////////////////////////////////////////////////////////////
+document.getElementById ("emailButton").addEventListener (
+   "click", emailButtonClickAction, false
+);
+function emailButtonClickAction (zEvent) {
+   document.querySelectorAll("input[value='Send an Email']")[0].click();
+}
+////////////////////////////////////////////////////////////////////
+document.getElementById ("spoofButton").addEventListener (
+   "click", spoofButtonClickAction, false
+);
+function spoofButtonClickAction (zEvent) {
+  GM_openInTab(spoofUrl);
+}
+////////////////////////////////////////////////////////////////////
+document.getElementById ("commsButton").addEventListener (
+   "click", commsButtonClickAction, false
+);
+function commsButtonClickAction (zEvent) {
+  GM_openInTab(commsURL);
+}
+////////////////////////////////////////////////////////////////////
+document.getElementById ("caseButton").addEventListener (
+   "click", caseButtonClickAction, false
+);
+function caseButtonClickAction (zEvent) {
+   document.querySelectorAll("input[value='New Case']")[0].click();
+}
+////////////////////////////////////////////////////////////////////
+document.getElementById ("noteButton").addEventListener (
+    "click", noteButtonClickAction, false
+ );
+function noteButtonClickAction (zEvent) {
+    GM_openInTab(noteURL);
+}
+////////////////////////////////////////////////////////////////////
+document.getElementById ("profitButton").addEventListener (
+    "click", profitButtonClickAction, false
+ );
+function profitButtonClickAction (zEvent) {
+    GM_openInTab(profitURL);
+}
+///////////////////////////////////////////////////////////////////
+if (liteVersion == "N"){
+//EVERYTHING PAST HERE FOR FULL VERSION ONLY
+////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
+document.getElementById ("limitChangesButton").addEventListener (
+   "click", limitChangesButtonClickAction, false
+);
+function limitChangesButtonClickAction (zEvent) {
+   GM_openInTab(limitChangesUrl);
+}
+////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
+}
+//--- Style our newly added elements using CSS.
+//border:                 3px outset black;
+GM_addStyle ( multilineStr ( function () {/*!
+   #myiframe {
+       border-radius:          15px;
+       position:               fixed;
+       top:                    10%;
+       left:                   85%;
+       font-size:              12px;
+       background:             #f4f5f7;
+       margin:                 5px;
+       opacity:                0.9;
+       z-index:                50;
+       padding:                5px 10px;
+   }
+   #sContainer {
+       border-radius:          15px;
+       position:               fixed;
+       top:                    10%;
+       left:                   85%;
+       font-size:              12px;
+       background:             #f4f5f7;
+       margin:                 5px;
+       opacity:                0.9;
+       z-index:                222;
+       padding:                5px 10px;
+   }
+   #myButton {
+       cursor:                 pointer;
+   }
+   #sContainer p {
+       border:                 1px outset black;
+       color:                  red;
+       background:             white;
+   }
+   #kOffersButton, #mbPtsButton, #myButton, #commsButton  {
+   border-radius: 4px;
+       background-color: #38b7ed;
+       border: none;
+       color: Black;
+       padding: 10px 13px;
+       text-align: centre;
+       text-decoration: none;
+       display: inline-block;
+       width: 100%;
+       font-size: 10px;
+   }
+   #lockNotice  {
+   border-radius: 4px;
+       background-color: Red;
+       border: none;
+       color: Black;
+       padding: 10px 13px;
+       text-align: left;
+       text-decoration: none;
+       display: inline-block;
+       width: 100%;
+       font-size: 12px;
+   }
+    #fundingButton, #limitsButton, #limitChangesButton, #lockoutButton, #creditButton ,#netDepButton,#spoofButton, #caseButton, #emailButton, #profitButton, #noteButton {
+   border-radius: 4px;
+       background-color: #38b7ed;
+       border: Black;
+       color: Black;
+       padding: 10px 13px;
+       text-align: left;
+       text-decoration: none;
+       display: inline-block;
+       width: 49%;
+       font-size: 10px;
+}
+*/} ) );
+function multilineStr (dummyFunc) {
+   var str = dummyFunc.toString ();
+   str = str.replace (/^[^\/]+\/\*!?/, '') // Strip function () { /*!
+           .replace (/\s*\*\/\s*\}\s*$/, '') // Strip */ }
+           .replace (/\/\/.+$/gm, '') // Double-slash comments wreck CSS. Strip them.
+           ;
+   return str;
+}
+function getSecInfo(){
+GM_xmlhttpRequest({
+method: "GET",
+url: "http://mbreports1.cixp.xcl.ie/report/json/?report=mysql%2Ftmp2%2Ftest_sec.sql&macros%5Busername%5D=" + vusername,
+onload: function(response) {secInfo = JSON.parse(response.responseText);
+sec_question = secInfo[0].question;
+sec_logins = secInfo[0].logins;
+sec_address_1 = secInfo[0].address_1;
+sec_dob = secInfo[0].dob;
+sec_status = secInfo[0].status;
+yNode = document.createElement ('div');
+yNode.innerHTML = '<Strong>Security Verification</Strong><BR>'
++ '1: ' + secInfo[0].question + '<BR>(Answer:' + secInfo[0].answer + ')<BR><BR>'
++ '2. First Line of your Address?' + '<BR>(Answer:' + secInfo[0].address_1 + ')<BR><BR>'
++ '3. Date of Birth ' + '<BR>(Answer:' + secInfo[0].dob + ')<BR><BR>';
+yNode.setAttribute ('id', 'tContainer');
+document.getElementById ("sContainer").appendChild (yNode);
+/*if( (secInfo[0].logins == "FAILFAILFAIL") && (secInfo[0].status == "suspended")){
+xNode = document.createElement ('div');
+xNode.innerHTML = '<button id="lockNotice" type="button">LOCKED[Incorrect Password]</button>';
+xNode.setAttribute ('id', 'uContainer');
+document.getElementById ("sContainer").prepend(xNode);
+}*/
+}});
+}
+function getPhpReport(paraUn){
+var returnVal = new Object;
+GM_xmlhttpRequest({
+method: "GET",
+url: "http://mbreports1.cixp.xcl.ie/report/json/?report=mysql%2Ftmp2%2Ftest_sec.sql&macros%5Busername%5D=" + paraUn,
+onload: function(response) {secInfo = JSON.parse(response.responseText);
+returnVal = secInfo[0];
+}});
+return returnVal;
+}
